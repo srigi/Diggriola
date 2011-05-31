@@ -2,3 +2,136 @@ Diggriola
 =========
 
 Abstraction layer for Models between Nette & NotORM.
+
+Complete tutorial in Slovak language can be found at http://wiki.nette.org/cs/cookbook/jednoduchy-model-s-notorm
+
+
+Diggriola is simple layer for accesing (loading) Models in Nette Framework.
+It is using excellent library NotORM by Jakub Vrána for database abstraction.
+With usage of Nette's DI implementation, obtaining of Model instance
+and table resultset is simple as:
+
+final class FooPresenter extends BasePresenter {
+    public function renderDefault() {
+        $model = $this->getModel('application');
+        $applications = $model->findByAuthorName('John Doe');
+    }
+}
+
+Resultset can be iterated:
+
+foreach ($applications as $app) {
+    echo "$app[name]: ";
+	foreach ($app->applications_tags() as $application_tag) { // M:N tags
+		echo "{$application_tag->tag['name']}, ";
+	}
+	echo '<br>';
+}
+
+All Models must inherit from Diggriola\BaseModel and be in Model namespace!
+
+
+Installation
+------------
+
+- put Diggriola folder to your LIBS_DIR
+- register services in app/config.neon
+
+    common:
+      services:
+
+        modelLoader:
+          class: Diggriola\ModelLoader
+          arguments: ['@dbConnection']
+
+        dbConnection:
+          factory: Diggriola\ModelLoader::dbConnect
+
+- setup DB connection in app/config.neon
+
+    development < common:
+
+      database:
+        driver: mysql
+        host: localhost
+        database: nette_notorm
+        username: php
+        password: php
+        profiler: true
+
+- write method for obtaining Models in BasePresenter
+
+    abstract class BasePresenter extends \Nette\Application\UI\Presenter {
+        protected function getModel($model) {
+            return $this->context->modelLoader->getModel($model);
+        }
+    }
+
+- create model representing DB table
+
+    <?php
+    namespace Model;
+
+    class Application extends \Diggriola\BaseModel {
+
+    }
+
+- setup session in app/bootstrap.php
+
+    $configurator->container->session->setExpiration('+ 90 days');
+    $configurator->container->session->start();
+
+Thats it! Now you can enjoy Diggriola Models
+
+
+Model API
+---------
+
+- <NotORM_Result> Diggrila\BaseModel::findBy<Column>(<column value>)
+
+  example: $applications = $applicationModel->findByName('Firefox');
+
+
+- <NotORM_Result> Diggrila\BaseModel::findBy<Related table><Column>(<column value>)
+
+  example: $applications = $applicationModel->findByAuthorName('John Doe');
+
+
+- <NotORM_Result> Diggrila\BaseModel::findBy<Related table><Column>(<column value>, true)
+
+  example: $applications = $applicationModel->findByTagName('php', true);
+
+
+- <NotORM_Row> Diggrila\BaseModel::insert(<data array>)
+
+  example: $applicationModel->insert(array(
+             'name' => 'calc 3000',
+             'author_id' => '5',
+           ));
+
+
+- Diggrila\BaseModel::update(<NotORM_Result>, <data array>)
+
+  example: $applications = $applicationModel->findByAuthorName('John Doe');
+           $affected = $applicationModel->update(applications, array('status'=>'unsupported'));
+
+
+- Diggrila\BaseModel::delete(<NotORM_Result>)
+
+  example: $applications = $applicationModel->findByAuthorName('John Doe');
+           $affected = $applicationModel->delete(applications);
+
+
+Feel free to introduce own API extensions by modifiing Diggriola\BaseModel in your applications :)
+
+
+Requirements
+------------
+
+- PHP 5.3
+- Nette Framework 2.0 beta or DEV for PHP 5.3
+- NotORM (dev)
+
+
+Feedback appreciated,
+cheers, srigi :)

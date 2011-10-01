@@ -47,19 +47,19 @@ class ModelLoader extends \Nette\Object
 	public static function dbConnect(IContainer $container)
 	{
 		$db = $container->params['database'];
-		$dsn = (isset($db->port))
-			? "{$db->driver}:host={$db->host};dbname={$db->database};port={$db->port}"
-			: "{$db->driver}:host={$db->host};dbname={$db->database}";
+		$dsn = (isset($db['port']))
+			? "$db[driver]:host=$db[host];dbname=$db[database];port=$db[port]"
+			: "$db[driver]:host=$db[host];dbname=$db[database]";
 
-		$pdo = new PDO($dsn, $db->username, $db->password);
+		$pdo = new PDO($dsn, $db['username'], $db['password']);
 		$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 		$pdo->query('SET NAMES utf8');
 
 		$conn = new NotORM($pdo, new NotORM_Structure_Convention('id', '%s_id', '%ss'), new NotORM_Cache_Session);
 
-		if ($db->profiler) {
+		if (isset($db['profiler']) && $db['profiler']) {
 			$panel = Panel::getInstance();
-			$panel->setPlatform($db->driver);
+			$panel->setPlatform($db['driver']);
 			Debugger::addPanel($panel);
 
 			$conn->debug = function($query, $parameters) {
